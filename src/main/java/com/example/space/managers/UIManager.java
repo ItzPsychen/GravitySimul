@@ -149,7 +149,6 @@ public class UIManager {
         btnHelp = new Button("?");
         btnBodiesInfo = new ToggleButton("\u25CB");
 
-        // Disable focus traversal for all buttons
         for (ButtonBase b : List.of(btnStop, btnMove, btnTimeTravel, btnSlowDown, btnSpeedUp,
                 btnCenter, btnFollow, btnFullScreen, btnGrid, btnNames, btnDelete, btnInfoText,
                 btnHelp, btnBodiesInfo)) {

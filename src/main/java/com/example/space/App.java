@@ -129,11 +129,9 @@ public class App extends Application {
     public void start(Stage stage) {
         this.mainStage = stage;
 
-        // Configure simulation constants and add initial body (star)
         sim.G = 6.67430e-3;
         sim.addBody(new Body("Star", 1e6, new Vector2D(0, 0), new Vector2D(0, 0), 20));
 
-        // Initialize managers and handlers
         timeTravel = new TimeTravelManager(sim);
         gridRenderer = new GridHandler();
         hudRenderer = new HUDHandler();
@@ -144,20 +142,17 @@ public class App extends Application {
 
         renderManager = new RenderManager(this, sim, cam, timeTravel, gridRenderer, hudRenderer);
 
-        // Prepare canvas graphics context
         Canvas canvas = (Canvas) ((VBox) ((StackPane) mainScene.getRoot()).getChildren().get(0)).getChildren().get(1);
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        // Configure stage
         stage.setScene(mainScene);
         stage.getScene().setFill(Color.BLACK);
         stage.setFullScreen(true);
         stage.setTitle("Space Gravity Simulator");
         stage.show();
 
-        // Defer input attachment and rendering loop start until after UI loads
         Platform.runLater(() -> {
             InputHandler inputHandler = new InputHandler(this, sim, cam, uiManager, timeTravel);
             inputHandler.attach(canvas, mainScene);

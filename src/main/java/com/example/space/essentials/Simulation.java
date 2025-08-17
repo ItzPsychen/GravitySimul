@@ -48,7 +48,7 @@ public class Simulation {
                 Body bi = state.get(i);
                 Body bj = state.get(j);
                 Vector2D r = bj.pos.sub(bi.pos);
-                double dist = Math.max(r.mag(), 1e-6); // avoid division by zero
+                double dist = Math.max(r.mag(), 1e-6);
                 double force = G * bi.mass * bj.mass / (dist * dist);
                 Vector2D dir = r.div(dist);
                 Vector2D accOnI = dir.mul(force / bi.mass);
@@ -71,7 +71,6 @@ public class Simulation {
         List<Body> s0 = new ArrayList<>(n);
         for (Body b : bodies) s0.add(b.copy());
 
-        // Compute RK4 stages...
         Vector2D[] a1 = computeAccelerations(s0);
         List<Vector2D> k1v = new ArrayList<>(), k1x = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -121,7 +120,6 @@ public class Simulation {
             k4x.add(s4.get(i).vel);
         }
 
-        // Apply RK4 update
         for (int i = 0; i < n; i++) {
             Body bo = bodies.get(i);
             Vector2D dv = k1v.get(i).mul(1.0 / 6.0)
