@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.example.space"},{"l":"com.example.space.essentials"},{"l":"com.example.space.handlers"},{"l":"com.example.space.managers"},{"l":"com.example.space.prompts"}];updateSearchResults();
