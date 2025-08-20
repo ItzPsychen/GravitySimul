@@ -34,6 +34,9 @@ public class InputHandler {
     private final UIManager uiManager;
     private final TimeTravelManager timeTravel;
 
+    /** Stores the aiming speed and angle. */
+    public AimingData aimingData;
+
     /** Stores drag offsets for camera movement. */
     private final Delta dragDelta = new Delta();
 
@@ -52,6 +55,7 @@ public class InputHandler {
         this.cam = cam;
         this.uiManager = uiManager;
         this.timeTravel = timeTravel;
+        this.aimingData = new AimingData();
     }
 
     /**
@@ -74,11 +78,11 @@ public class InputHandler {
      */
     private void setupMouseHandlers(Canvas canvas) {
         canvas.setOnMousePressed(e -> {
-            if (main.moveOnlyMode) {
+            if (main.moveOnlyMode && e.getButton() == MouseButton.PRIMARY) {
                 dragDelta.x = e.getX();
                 dragDelta.y = e.getY();
                 main.stopFollow();
-            } else if (e.getButton() == MouseButton.PRIMARY && e.isShiftDown()) {
+            } else if (e.isShiftDown() && e.getButton() == MouseButton.PRIMARY) {
                 if (timeTravel.isTimeTravelMode()) timeTravel.exitTimeTravelMode();
                 Vector2D w = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
                 MassPrompt.BodyProperties props = new MassPrompt().prompt(main.getMainStage());
@@ -123,7 +127,7 @@ public class InputHandler {
                     });
                     bodyMenu.show(canvas, e.getScreenX(), e.getScreenY());
                 }
-            } else if (e.getButton() == MouseButton.PRIMARY && e.isControlDown()) {
+            } else if (e.isControlDown() && e.getButton() == MouseButton.PRIMARY) {
                 Body b = main.findBodyAt(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
                 if (b != null) {
                     if (timeTravel.isTimeTravelMode()) timeTravel.exitTimeTravelMode();
@@ -132,19 +136,32 @@ public class InputHandler {
                     main.removedBodies.add(b);
                 }
             } else if (e.getButton() == MouseButton.PRIMARY) {
-                Vector2D w = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
-                sim.addBody(new Body("B" + sim.bodies.size(), main.defMass, new Vector2D(w.x, w.y), new Vector2D(0, 0), 5));
+                if (main.aimingMode) {
+                    placeBodyWithVelocity();
+                    main.aimingMode = false;
+                    aimingData.reset();
+                } else {
+                    main.aimingMode = true;
+                    Vector2D w = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
+                    aimingData.start.x = w.x;
+                    aimingData.start.y = w.y;
+                    aimingData.screenStart.x = e.getX();
+                    aimingData.screenStart.y = e.getY();
+                }
             }
         });
 
         canvas.setOnMouseDragged(e -> {
-            if (e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY) {
+            if (main.moveOnlyMode) {
                 double dx = (e.getX() - dragDelta.x) / cam.scale;
                 double dy = (e.getY() - dragDelta.y) / cam.scale;
                 cam.pan(-dx, -dy);
                 dragDelta.x = e.getX();
                 dragDelta.y = e.getY();
                 main.stopFollow();
+            } else if (main.aimingMode && e.getButton() == MouseButton.PRIMARY) {
+                aimingData.curr.x = e.getX();
+                aimingData.curr.y = e.getY();
             }
         });
 
@@ -155,15 +172,33 @@ public class InputHandler {
             double threshold = 0.5;
             if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
 
-            boolean possiblePinch = isPossiblePinch(dx, threshold, dy);
+            double zoomFactor = Math.pow(1.001, dy);
+            Vector2D mouseWorld = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
+            cam.zoom(zoomFactor, mouseWorld.x, mouseWorld.y);
 
-            if (possiblePinch) {
-                double zoomFactor = Math.pow(1.001, dy);
-                Vector2D mouseWorld = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
-                cam.zoom(zoomFactor, mouseWorld.x, mouseWorld.y);
-            } else cam.pan(-dx / cam.scale, -dy / cam.scale);
             e.consume();
         });
+
+        canvas.setOnMouseReleased(e -> {
+            if (main.aimingMode && e.getButton() == MouseButton.PRIMARY) {
+                placeBodyWithVelocity();
+                main.aimingMode = false;
+                aimingData.reset();
+            }
+        });
+    }
+
+    private void placeBodyWithVelocity() {
+        double dx = (aimingData.screenStart.x - aimingData.curr.x) / cam.scale;
+        double dy = (aimingData.screenStart.y - aimingData.curr.y) / cam.scale;
+
+        double velocityScale = (Math.pow(aimingData.curr.x, 2) + Math.pow(aimingData.curr.y, 2) > 0) ? 0.2 : 0;
+
+        sim.addBody(new Body("B" + sim.bodies.size(),
+                main.defMass,
+                new Vector2D(aimingData.start.x, aimingData.start.y),
+                new Vector2D(dx * velocityScale, dy * velocityScale),
+                5));
     }
 
     // ---------------- Keyboard Handling ----------------
@@ -293,34 +328,70 @@ public class InputHandler {
     }
 
     /**
-     * Determines if a mouse scroll event represents a pinch-zoom gesture.
-     *
-     * @param dx        horizontal scroll delta
-     * @param threshold minimum delta to consider
-     * @param dy        vertical scroll delta
-     * @return {@code true} if the event is likely a pinch gesture
-     */
-    private static boolean isPossiblePinch(double dx, double threshold, double dy) {
-        boolean possiblePinch = false;
-        if (Math.abs(dx) > threshold && Math.abs(dy) > threshold) {
-            if ((dx > 0 && dy < 0) || (dx < 0 && dy > 0)) {
-                possiblePinch = true;
-            } else {
-                double ratio = Math.abs(dx / dy);
-                if (ratio > 0.5 && ratio < 2.0) {
-                    possiblePinch = true;
-                }
-            }
-        } else if (Math.abs(dx) < threshold && Math.abs(dy) > threshold) {
-            possiblePinch = true;
-        }
-        return possiblePinch;
-    }
-
-    /**
      * Helper class storing mouse drag deltas.
      */
     static class Delta {
         double x, y;
+    }
+
+    /**
+     * Represents data related to aiming, such as the starting point,
+     * the corresponding screen coordinates, and the current aim position.
+     * <p>
+     * This class is useful for tracking user input or aiming mechanics in a simulation or game.
+     */
+    public static class AimingData {
+
+        /** The starting point of the aim in world coordinates. */
+        public Vector2D start;
+
+        /** The starting point of the aim in screen coordinates. */
+        public Vector2D screenStart;
+
+        /** The current position of the aim in world coordinates. */
+        public Vector2D curr;
+
+        /**
+         * Creates a new {@code AimingData} object with all points initialized to zero.
+         */
+        public AimingData() {
+            reset();
+        }
+
+        /**
+         * Creates a new {@code AimingData} object with the specified start, screen start, and current positions.
+         *
+         * @param start       the starting point in world coordinates
+         * @param screenStart the starting point in screen coordinates
+         * @param curr        the current aim position in world coordinates
+         */
+        public AimingData(Vector2D start, Vector2D screenStart, Vector2D curr) {
+            this.start = start;
+            this.screenStart = screenStart;
+            this.curr = curr;
+        }
+
+        /**
+         * Resets all points to zero coordinates.
+         * <p>
+         * This is useful for clearing previous aiming data.
+         */
+        public void reset() {
+            start = new Vector2D();
+            screenStart = new Vector2D();
+            curr = new Vector2D();
+        }
+
+        /**
+         * Creates a shallow copy of this {@code AimingData} object.
+         * <p>
+         * Note: The {@link Vector2D} instances themselves are not cloned;
+         * only the references are copied.
+         *
+         * @return a new {@code AimingData} object with the same values
+         */
+        public AimingData copy() {
+            return new AimingData(start, screenStart, curr);
+        }
     }
 }

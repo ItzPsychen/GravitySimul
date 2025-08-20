@@ -89,6 +89,9 @@ public class App extends Application {
     /** Whether the simulation is currently following a body. */
     public boolean following = false;
 
+    /** Whether the user is able to aim and shoot a body. */
+    public boolean aimingMode = false;
+
     /** List of removed bodies (e.g., for undo or time travel). */
     public List<Body> removedBodies;
 
@@ -100,6 +103,9 @@ public class App extends Application {
 
     /** HUD (Heads-Up Display) rendering handler. */
     public HUDHandler hudRenderer;
+
+    /** Input (keyboard) handler. */
+    public InputHandler inputHandler;
 
     /** UI Manager for handling interactive elements. */
     public UIManager uiManager;
@@ -138,6 +144,7 @@ public class App extends Application {
         removedBodies = new ArrayList<>();
 
         uiManager = new UIManager(this, stage, sim, cam, timeTravel);
+        inputHandler = new InputHandler(this, sim, cam, uiManager, timeTravel);
         Scene mainScene = uiManager.setupUI(windowWidth, windowHeight);
 
         renderManager = new RenderManager(this, sim, cam, timeTravel, gridRenderer, hudRenderer);
@@ -154,7 +161,6 @@ public class App extends Application {
         stage.show();
 
         Platform.runLater(() -> {
-            InputHandler inputHandler = new InputHandler(this, sim, cam, uiManager, timeTravel);
             inputHandler.attach(canvas, mainScene);
             renderManager.startMainLoop(canvas, gc);
         });
