@@ -10,7 +10,6 @@ import com.example.space.handlers.InputHandler;
 import com.example.space.managers.RenderManager;
 import com.example.space.managers.TimeTravelManager;
 import com.example.space.managers.UIManager;
-import com.example.space.prompts.FollowPrompt;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
@@ -42,7 +41,7 @@ public class App extends Application {
     private Stage mainStage;
 
     /** Core physics simulation instance. */
-    public final Simulation sim = new Simulation();
+    public Simulation sim;
 
     /** Camera instance for handling world-to-screen transformations. */
     public final Camera cam = new Camera();
@@ -53,8 +52,8 @@ public class App extends Application {
     /** Window height property bound to the screen's visual bounds. */
     public final DoubleProperty windowHeight = new SimpleDoubleProperty(Screen.getPrimary().getVisualBounds().getHeight());
 
-    /** Default mass for newly created bodies. */
-    public final double defMass = 50.0;
+    /** Default body values. */
+    public Body defBody = new Body(50, 5);
 
     /** Whether the simulator is in move-only mode. */
     public boolean moveOnlyMode = false;
@@ -82,9 +81,6 @@ public class App extends Application {
 
     /** Duration (in nanoseconds) the escape key must be held to quit. */
     public static final long ESC_HOLD_DURATION_NS = 2_000_000_000L;
-
-    /** Body currently being followed. */
-    public Body bodyFollowed = null;
 
     /** Whether the simulation is currently following a body. */
     public boolean following = false;
@@ -134,20 +130,19 @@ public class App extends Application {
     @Override
     public void start(Stage stage) {
         this.mainStage = stage;
-
-        sim.G = 6.67430e-3;
-        sim.addBody(new Body("Star", 1e6, new Vector2D(0, 0), new Vector2D(0, 0), 20));
+        sim = new Simulation(this);
 
         timeTravel = new TimeTravelManager(sim);
         gridRenderer = new GridHandler();
         hudRenderer = new HUDHandler();
         removedBodies = new ArrayList<>();
-
-        uiManager = new UIManager(this, stage, sim, cam, timeTravel);
+        uiManager = new UIManager(this, stage, sim, cam, timeTravel, defBody);
         inputHandler = new InputHandler(this, sim, cam, uiManager, timeTravel);
         Scene mainScene = uiManager.setupUI(windowWidth, windowHeight);
 
         renderManager = new RenderManager(this, sim, cam, timeTravel, gridRenderer, hudRenderer);
+        sim.G = 6.67430e-3;
+        sim.addBody(new Body("Star", 1e6, new Vector2D(0, 0), new Vector2D(0, 0), 20));
 
         Canvas canvas = (Canvas) ((VBox) ((StackPane) mainScene.getRoot()).getChildren().get(0)).getChildren().get(1);
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -183,48 +178,6 @@ public class App extends Application {
             }
         }
         return null;
-    }
-
-    /**
-     * Starts following a selected body.
-     * <p>
-     * Opens a dialog prompt for selecting a body to follow. Adjusts the camera
-     * and simulation speed accordingly.
-     * </p>
-     */
-    public void startFollow() {
-        if (timeTravel.isTimeTravelMode() || sim.bodies.isEmpty()) return;
-
-        FollowPrompt followDialog = new FollowPrompt();
-        FollowPrompt.FollowResult result = followDialog.show(getMainStage(), sim.bodies, bodyFollowed);
-
-        if (result != null) {
-            bodyFollowed = result.body();
-            following = true;
-            uiManager.getBtnFollow().setSelected(true);
-
-            if (result.zoomToFit()) {
-                cam.scale = 10.0 / bodyFollowed.radius;
-            }
-            sim.speed = Math.min(sim.speed, 30.0 / bodyFollowed.getSpeed() / cam.scale);
-        } else {
-            uiManager.getBtnFollow().setSelected(false);
-        }
-        uiManager.selectButton(uiManager.getBtnFollow(), -1);
-    }
-
-    /**
-     * Stops following the current body.
-     * <p>
-     * Resets the camera follow state and UI button selection.
-     * </p>
-     */
-    public void stopFollow() {
-        following = false;
-        cam.clearFollowTarget();
-        uiManager.getBtnFollow().setSelected(false);
-        uiManager.selectButton(uiManager.getBtnFollow(), -1);
-        bodyFollowed = null;
     }
 
     /**

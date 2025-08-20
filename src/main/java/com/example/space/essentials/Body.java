@@ -10,7 +10,7 @@ package com.example.space.essentials;
  */
 public class Body {
     /** Unique identifier or name of the body. */
-    public final String id;
+    public String id;
 
     /** Mass of the body. */
     public double mass;
@@ -26,6 +26,17 @@ public class Body {
 
     /** Radius of the body, used for rendering and hit detection. */
     public double radius;
+
+    /**
+     * Constructs a new {@code Body} for default list.
+     *
+     * @param mass   mass of the bodyù
+     * @param radius radius of the body
+     */
+    public Body(double mass, double radius) {
+        this.mass = mass;
+        this.radius = radius;
+    }
 
     /**
      * Constructs a new {@code Body}.

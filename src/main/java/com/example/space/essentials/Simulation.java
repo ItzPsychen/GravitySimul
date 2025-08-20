@@ -1,5 +1,8 @@
 package com.example.space.essentials;
 
+import com.example.space.App;
+import com.example.space.prompts.FollowPrompt;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +14,8 @@ import java.util.List;
  * </p>
  */
 public class Simulation {
+    private final App main;
+
     /** All bodies currently in the simulation. */
     public final List<Body> bodies = new ArrayList<>();
 
@@ -20,8 +25,20 @@ public class Simulation {
     /** Simulation speed multiplier. */
     public double speed = 1.0;
 
+    /** Body currently being followed. */
+    public Body bodyFollowed = null;
+
     private boolean running = true;
     private boolean prevRunning = true;
+
+    /**
+     * Constructs a new Simulation.
+     *
+     * @param main        the main application instance
+     */
+    public Simulation(App main) {
+        this.main = main;
+    }
 
     /**
      * Adds a new body to the simulation.
@@ -163,5 +180,47 @@ public class Simulation {
      */
     public void setPrevRunning(boolean val) {
         prevRunning = val;
+    }
+
+    /**
+     * Starts following a selected body.
+     * <p>
+     * Opens a dialog prompt for selecting a body to follow. Adjusts the camera
+     * and simulation speed accordingly.
+     * </p>
+     */
+    public void startFollow() {
+        if (bodies.isEmpty()) return;
+
+        FollowPrompt followDialog = new FollowPrompt();
+        FollowPrompt.FollowResult result = followDialog.show(main.getMainStage(), bodies, bodyFollowed);
+
+        if (result != null) {
+            bodyFollowed = result.body();
+            main.following = true;
+            main.uiManager.getBtnFollow().setSelected(true);
+
+            if (result.zoomToFit()) {
+                main.cam.scale = 10.0 / bodyFollowed.radius;
+            }
+            speed = Math.min(speed, 30.0 / bodyFollowed.getSpeed() / main.cam.scale);
+        } else {
+            main.uiManager.getBtnFollow().setSelected(false);
+        }
+        main.uiManager.selectButton(main.uiManager.getBtnFollow(), -1);
+    }
+
+    /**
+     * Stops following the current body.
+     * <p>
+     * Resets the camera follow state and UI button selection.
+     * </p>
+     */
+    public void stopFollow() {
+        main.following = false;
+        main.cam.clearFollowTarget();
+        main.uiManager.getBtnFollow().setSelected(false);
+        main.uiManager.selectButton(main.uiManager.getBtnFollow(), -1);
+        bodyFollowed = null;
     }
 }

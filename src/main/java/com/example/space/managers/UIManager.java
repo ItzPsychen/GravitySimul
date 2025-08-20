@@ -3,6 +3,8 @@ package com.example.space.managers;
 import com.example.space.App;
 import com.example.space.essentials.Camera;
 import com.example.space.essentials.Simulation;
+import com.example.space.essentials.Body;
+import com.example.space.prompts.DefaultBodyPrompt;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -16,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -31,6 +34,7 @@ public class UIManager {
     private final Simulation sim;
     private final Camera cam;
     private final TimeTravelManager timeTravel;
+    private final DefaultBodyPrompt defaultBodyPrompt;
 
     private Button btnStop;
     private ToggleButton btnMove;
@@ -46,6 +50,7 @@ public class UIManager {
     private ToggleButton btnInfoText;
     private Button btnHelp;
     private ToggleButton btnBodiesInfo;
+    private Button btnDefBody;
 
     private final String oldBtnStyle = "-fx-background-color: #333; -fx-text-fill: white; -fx-font-size: 14px;";
 
@@ -57,13 +62,15 @@ public class UIManager {
      * @param sim         the simulation
      * @param cam         the camera
      * @param timeTravel  the time travel manager
+     * @param defBody     the default body
      */
-    public UIManager(App main, Stage stage, Simulation sim, Camera cam, TimeTravelManager timeTravel) {
+    public UIManager(App main, Stage stage, Simulation sim, Camera cam, TimeTravelManager timeTravel, Body defBody) {
         this.main = main;
         this.mainStage = stage;
         this.sim = sim;
         this.cam = cam;
         this.timeTravel = timeTravel;
+        this.defaultBodyPrompt = new DefaultBodyPrompt(defBody);
     }
 
     /**
@@ -148,10 +155,17 @@ public class UIManager {
         btnInfoText = new ToggleButton("i");
         btnHelp = new Button("?");
         btnBodiesInfo = new ToggleButton("\u25CB");
+        btnDefBody = new Button("");
+
+        Circle circle = new Circle(6);
+        circle.setFill(Color.hsb(main.defBody.mass % 360, 0.8, 0.9));
+        HBox graphic = new HBox(5, circle);
+        graphic.setAlignment(Pos.CENTER_LEFT);
+        btnDefBody.setGraphic(graphic);
 
         for (ButtonBase b : List.of(btnStop, btnMove, btnTimeTravel, btnSlowDown, btnSpeedUp,
                 btnCenter, btnFollow, btnFullScreen, btnGrid, btnNames, btnDelete, btnInfoText,
-                btnHelp, btnBodiesInfo)) {
+                btnHelp, btnBodiesInfo, btnDefBody)) {
             b.setFocusTraversable(false);
         }
 
@@ -175,7 +189,7 @@ public class UIManager {
         });
 
         btnTimeTravel.setOnAction(e -> {
-            if (main.following) main.stopFollow();
+            if (main.following) sim.stopFollow();
             selectButton(btnTimeTravel, -1);
             if (timeTravel.isTimeTravelMode()) {
                 timeTravel.exitTimeTravelMode();
@@ -200,7 +214,7 @@ public class UIManager {
         btnCenter.setOnAction(e -> {
             flashButton(btnCenter);
             btnFollow.setSelected(false);
-            main.stopFollow();
+            sim.stopFollow();
             cam.x = 0;
             cam.y = 0;
             cam.scale = 1;
@@ -208,8 +222,8 @@ public class UIManager {
         });
 
         btnFollow.setOnAction(e -> {
-            if (main.following) main.stopFollow();
-            else main.startFollow();
+            if (main.following) sim.stopFollow();
+            else sim.startFollow();
         });
 
         btnFullScreen.setOnAction(e -> {
@@ -238,7 +252,7 @@ public class UIManager {
                 selectButton(btnTimeTravel, 0);
             }
             if (btnFollow.isSelected()) {
-                main.stopFollow();
+                sim.stopFollow();
             }
             btnFollow.setStyle(oldBtnStyle);
             main.sim.speed = 1.0;
@@ -261,6 +275,20 @@ public class UIManager {
             selectButton(btnBodiesInfo, -1);
             main.showBodiesInfo = !main.showBodiesInfo;
         });
+
+        btnDefBody.setOnAction(e -> {
+            flashButton(btnDefBody);
+            DefaultBodyPrompt.DefaultBodyResult result = defaultBodyPrompt.show(main.getMainStage());
+            if (result != null) {
+                main.defBody.mass = result.defaultBody().mass;
+                main.defBody.radius = result.defaultBody().radius;
+                Circle circle = new Circle(6);
+                circle.setFill(Color.hsb(main.defBody.mass % 360, 0.8, 0.9));
+                HBox graphic = new HBox(5, circle);
+                graphic.setAlignment(Pos.CENTER_LEFT);
+                btnDefBody.setGraphic(graphic);
+            }
+        });
     }
 
     /**
@@ -270,7 +298,7 @@ public class UIManager {
     private HBox createToolbar() {
         HBox toolbar = new HBox(10, btnStop, btnMove, btnTimeTravel, btnSlowDown, btnSpeedUp,
                 btnCenter, btnFollow, btnFullScreen, btnGrid, btnNames, btnDelete, btnInfoText,
-                btnHelp, btnBodiesInfo);
+                btnHelp, btnBodiesInfo, btnDefBody);
         toolbar.setStyle("-fx-background-color: #111; -fx-padding: 8;");
         toolbar.setAlignment(Pos.CENTER_LEFT);
         for (Node node : toolbar.getChildren()) if (node instanceof ButtonBase b) b.setStyle(oldBtnStyle);
@@ -323,7 +351,7 @@ public class UIManager {
     public void centerCamera() {
         flashButton(btnCenter);
         btnFollow.setSelected(false);
-        main.stopFollow();
+        sim.stopFollow();
         cam.x = 0;
         cam.y = 0;
         cam.scale = 1;
@@ -342,7 +370,7 @@ public class UIManager {
             timeTravel.setTimeTravelMode(false);
             selectButton(btnTimeTravel, 0);
         }
-        if (btnFollow.isSelected()) main.stopFollow();
+        if (btnFollow.isSelected()) sim.stopFollow();
         btnFollow.setStyle(oldBtnStyle);
         main.sim.speed = 1.0;
         cam.reset();
@@ -412,7 +440,7 @@ public class UIManager {
         } else {
             if (main.following) {
                 btnFollow.setSelected(false);
-                main.stopFollow();
+                sim.stopFollow();
             }
             timeTravel.setTimeTravelMode(true);
             sim.setRunning(false);

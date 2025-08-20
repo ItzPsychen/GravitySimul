@@ -135,7 +135,7 @@ public class RenderManager {
             if (main.showNames) gc.fillText(b.id, sx - 10, sy + sr + 12);
         }
 
-        if (main.following && main.bodyFollowed != null) cam.setFollowTarget(main.bodyFollowed.pos);
+        if (main.following && sim.bodyFollowed != null) cam.setFollowTarget(sim.bodyFollowed.pos);
         else cam.clearFollowTarget();
 
         cam.updateFollow();

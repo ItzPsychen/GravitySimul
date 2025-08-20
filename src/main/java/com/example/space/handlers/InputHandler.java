@@ -81,7 +81,7 @@ public class InputHandler {
             if (main.moveOnlyMode && e.getButton() == MouseButton.PRIMARY) {
                 dragDelta.x = e.getX();
                 dragDelta.y = e.getY();
-                main.stopFollow();
+                sim.stopFollow();
             } else if (e.isShiftDown() && e.getButton() == MouseButton.PRIMARY) {
                 if (timeTravel.isTimeTravelMode()) timeTravel.exitTimeTravelMode();
                 Vector2D w = cam.screenToWorld(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
@@ -105,11 +105,11 @@ public class InputHandler {
                 Body b = main.findBodyAt(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
                 if (b != null) {
                     removeItem.setOnAction(a -> {
-                        if (main.bodyFollowed == b) main.stopFollow();
+                        if (sim.bodyFollowed == b) sim.stopFollow();
                         sim.bodies.remove(b);
                     });
                     followItem.setOnAction(a -> {
-                        main.bodyFollowed = b;
+                        sim.bodyFollowed = b;
                         main.following = true;
                         main.uiManager.getBtnFollow().setSelected(true);
                         main.uiManager.selectButton(main.uiManager.getBtnFollow(), -1);
@@ -131,7 +131,7 @@ public class InputHandler {
                 Body b = main.findBodyAt(e.getX(), e.getY(), canvas.getWidth(), canvas.getHeight());
                 if (b != null) {
                     if (timeTravel.isTimeTravelMode()) timeTravel.exitTimeTravelMode();
-                    if (main.bodyFollowed == b) main.stopFollow();
+                    if (sim.bodyFollowed == b) sim.stopFollow();
                     sim.bodies.remove(b);
                     main.removedBodies.add(b);
                 }
@@ -158,7 +158,7 @@ public class InputHandler {
                 cam.pan(-dx, -dy);
                 dragDelta.x = e.getX();
                 dragDelta.y = e.getY();
-                main.stopFollow();
+                sim.stopFollow();
             } else if (main.aimingMode && e.getButton() == MouseButton.PRIMARY) {
                 aimingData.curr.x = e.getX();
                 aimingData.curr.y = e.getY();
@@ -195,10 +195,10 @@ public class InputHandler {
         double velocityScale = (Math.pow(aimingData.curr.x, 2) + Math.pow(aimingData.curr.y, 2) > 0) ? 0.2 : 0;
 
         sim.addBody(new Body("B" + sim.bodies.size(),
-                main.defMass,
+                main.defBody.mass,
                 new Vector2D(aimingData.start.x, aimingData.start.y),
                 new Vector2D(dx * velocityScale, dy * velocityScale),
-                5));
+                main.defBody.radius));
     }
 
     // ---------------- Keyboard Handling ----------------
@@ -294,11 +294,11 @@ public class InputHandler {
 
     private void handleFKey() {
         if (main.following) {
-            main.stopFollow();
-            main.startFollow();
+            sim.stopFollow();
+            sim.startFollow();
         } else {
             uiManager.setFollowSelected(true);
-            main.startFollow();
+            sim.startFollow();
         }
     }
     private void handleQKey() {
