@@ -130,6 +130,8 @@ public class App extends Application {
     @Override
     public void start(Stage stage) {
         this.mainStage = stage;
+        stage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icon.png")));
+
         sim = new Simulation(this);
 
         timeTravel = new TimeTravelManager(sim);

@@ -6,13 +6,15 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.example</groupId>
-  <artifactId>space-sim</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <artifactId>gravity-simulator</artifactId>
+  <version>1.0.0</version>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.release>17</maven.compiler.release>
-    <javafx.version>22.0.1</javafx.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <javafx.version>21.0.7</javafx.version>
+    <release.folder>GS_1.0.0</release.folder>
+    <versions.dir>_VERSIONS</versions.dir>
   </properties>
 
   <dependencies>
@@ -31,6 +33,11 @@
       <artifactId>javafx-base</artifactId>
       <version>${javafx.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-fxml</artifactId>
+      <version>${javafx.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -45,12 +52,115 @@
       </plugin>
 
       <plugin>
-        <groupId>org.openjfx</groupId>
-        <artifactId>javafx-maven-plugin</artifactId>
-        <version>0.0.8</version>
-        <configuration>
-          <mainClass>com.example.space.App</mainClass>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.example.space.App</mainClass>
+                </transformer>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <mkdir dir="${project.basedir}/${versions.dir}"/>
+                <mkdir dir="${project.basedir}/${versions.dir}/${release.folder}"/>
+                <copy todir="${project.basedir}/${versions.dir}/${release.folder}/javafx-sdk">
+                  <fileset dir="C:/Program Files/Eclipse Adoptium/javafx-sdk-21.0.8"/>
+                </copy>
+                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                      tofile="${project.basedir}/${versions.dir}/${release.folder}/${project.build.finalName}.jar"/>
+                <copy file="${project.basedir}/src/main/resources/icon.png"
+                      tofile="${project.basedir}/${versions.dir}/${release.folder}/icon.png"/>
+                <echo file="${project.basedir}/${versions.dir}/${release.folder}/RUNME.bat">@echo off
+                  echo =============================
+                  echo    GRAVITY SIMULATOR 1.0.0
+                  echo =============================
+                  echo.
+                  echo Starting application...
+                  echo.
+                  echo NOTE: Keep this terminal open while using the application
+                  echo.
+
+                  java --module-path "javafx-sdk/lib" --add-modules javafx.controls,javafx.fxml,javafx.graphics -jar "${project.build.finalName}.jar"
+
+                  echo Application closed.
+                  echo Press any key to exit...
+                  pause >nul</echo>
+
+                <echo file="${project.basedir}/${versions.dir}/${release.folder}/README.txt">
+==============================================
+           GRAVITY SIMULATOR v1.0.0
+==============================================
+
+    Created by:   Milo Casarotto
+    Release date: 21.08.2025
+    Version:      1.0.0
+
+*** ABOUT ***
+
+  A simple and effective gravity simulation system that models bodies
+  mechanics with realistic physics. Built with JavaFX for better
+  visualizations and smooth movements.
+
+*** HOW TO RUN ***
+
+  Follow this steps to run the application:
+    1. Double-click on 'RUNME.bat'
+    2. The application will start automatically
+    3. Keep the terminal window open while using the application
+
+*** MANUAL METHOD ***
+
+  In case the standard way didn't work, try to run:
+  java --module-path "javafx-sdk/lib" --add-modules javafx.controls,javafx.fxml,javafx.graphics -jar "gravity-simulator-1.0.0.jar"
+
+*** TROUBLESHOOTING ***
+
+  If the application doesn't start:
+    1. Ensure you have Java 21 installed
+    2. Try running as Administrator
+    3. Check if antivirus is blocking the application
+
+Enjoy :)
+
+==============================================</echo>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

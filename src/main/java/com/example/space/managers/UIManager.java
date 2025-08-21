@@ -81,7 +81,7 @@ public class UIManager {
      * @return the configured scene
      */
     public Scene setupUI(DoubleProperty windowWidth, DoubleProperty windowHeight) {
-        main.getMainStage().setMinWidth(600);
+        main.getMainStage().setMinWidth(650);
         main.getMainStage().setMinHeight(700);
 
         Canvas canvas = new Canvas(windowWidth.getValue(), windowHeight.getValue());
